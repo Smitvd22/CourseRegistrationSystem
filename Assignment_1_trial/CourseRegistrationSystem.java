@@ -683,6 +683,7 @@ public class CourseRegistrationSystem {
         try {
             System.out.println("1. View all students");
             System.out.println("2. Update student information");
+            System.out.println("3. Mark course as completed");
             int choice = getIntInput("Enter your choice: ");
 
             switch (choice) {
@@ -692,9 +693,11 @@ public class CourseRegistrationSystem {
                 case 2:
                     updateStudentInformation();
                     break;
-                
+                case 3:
+                    markCourseCompleted();
+                    break;
                 default:
-                    throw new IllegalArgumentException("Invalid choice. Please enter a number between 1 and 2.");
+                    throw new IllegalArgumentException("Invalid choice. Please enter a number between 1 and 3.");
             }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
