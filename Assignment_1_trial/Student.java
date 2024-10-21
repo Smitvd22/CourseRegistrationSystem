@@ -72,4 +72,20 @@ public class Student extends User {
     public void setCurrentSemester(int currentSemester) {
         this.currentSemester = currentSemester;
     }
+
+    public void markCourseCompleted(Course course, double grade) {
+    enrolledCourses.remove(course);
+    completedCourses.add(course);
+    updateCGPA(grade);
+}
+
+    private void updateCGPA(double grade) {
+        int totalCredits = 0;
+        double totalGradePoints = 0;
+        for (Course course : completedCourses) {
+            totalCredits += course.getCredits();
+            totalGradePoints += course.getCredits() * grade;
+        }
+        cgpa = totalGradePoints / totalCredits;
+}
 }
