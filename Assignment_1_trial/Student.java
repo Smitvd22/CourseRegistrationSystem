@@ -1,12 +1,16 @@
 package Assignment_1_trial;
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class Student extends User {
     private int currentSemester;
     private Set<Course> enrolledCourses;
     private Set<Course> completedCourses;
+    private Map<Course, LocalDate> enrollmentDates;
     private double cgpa;
 
     public Student(String name, String email, String password) {
@@ -14,6 +18,7 @@ public class Student extends User {
         this.currentSemester = 1;
         this.enrolledCourses = new HashSet<>();
         this.completedCourses = new HashSet<>();
+        this.enrollmentDates = new HashMap<>();
         this.cgpa = 0.0;
     }
 
@@ -28,12 +33,20 @@ public class Student extends User {
         System.out.println("7. Logout");
     }
 
-    public void registerForCourse(Course course) {
+    public void registerForCourse(Course course, LocalDate enrollmentDate) {
         enrolledCourses.add(course);
+        enrollmentDates.put(course, enrollmentDate); // Store the enrollment date
+        course.enrollStudent(this);
+    }
+    
+    public LocalDate getEnrollmentDate(Course course) {
+        return enrollmentDates.get(course);
     }
 
     public void dropCourse(Course course) {
         enrolledCourses.remove(course);
+        enrollmentDates.remove(course); // Remove the enrollment date when dropping
+        course.unenrollStudent(this);
     }
 
     public Set<Course> getEnrolledCourses() {
