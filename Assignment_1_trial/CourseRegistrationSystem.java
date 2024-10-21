@@ -6,6 +6,35 @@ import java.util.Scanner;
 import java.util.Iterator;
 import java.util.regex.Pattern;
 import java.io.Console;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.Scanner;
+import java.util.Iterator;
+import java.util.regex.Pattern;
+import java.io.Console;
+
+class EarlyDropException extends Exception {
+    private LocalDate eligibleDate;
+    private long daysRemaining;
+
+    public EarlyDropException(String message, LocalDate eligibleDate, long daysRemaining) {
+        super(message);
+        this.eligibleDate = eligibleDate;
+        this.daysRemaining = daysRemaining;
+    }
+
+    public LocalDate getEligibleDate() {
+        return eligibleDate;
+    }
+
+    public long getDaysRemaining() {
+        return daysRemaining;
+    }
+}
 
 public class CourseRegistrationSystem {
     private Set<User> users;
@@ -396,8 +425,14 @@ public class CourseRegistrationSystem {
             }
             Course selectedCourse = findCourseByCode(courseCode);
             if (selectedCourse != null) {
-                student.registerForCourse(selectedCourse);
+                // Get enrollment date
+                LocalDate enrollmentDate = getEnrollmentDate();
+                student.registerForCourse(selectedCourse, enrollmentDate);
                 System.out.println("Successfully registered for " + selectedCourse.getName());
+                // Calculate and show the earliest possible drop date
+                LocalDate dropEligibleDate = enrollmentDate.plusMonths(2);
+                System.out.println("Note: You will be eligible to drop this course after: " 
+                    + dropEligibleDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
             } else {
                 throw new IllegalArgumentException("Course not found.");
             }
@@ -406,6 +441,27 @@ public class CourseRegistrationSystem {
         } catch (Exception e) {
             System.out.println("An unexpected error occurred during course registration: " + e.getMessage());
         }
+    }
+
+    private LocalDate getEnrollmentDate() {
+        LocalDate enrollmentDate = LocalDate.now(); // Default to current date
+        try {
+            System.out.println("Enter enrollment date (dd-MM-yyyy) or press Enter for today's date: ");
+            String dateStr = scanner.nextLine().trim();
+            
+            if (!dateStr.isEmpty()) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                enrollmentDate = LocalDate.parse(dateStr, formatter);
+                
+                // Validate that the date is not in the future
+                if (enrollmentDate.isAfter(LocalDate.now())) {
+                    throw new IllegalArgumentException("Enrollment date cannot be in the future");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Invalid date format. Using current date.");
+        }
+        return enrollmentDate;
     }
 
     private void viewSchedule(Student student) {
@@ -447,13 +503,39 @@ public class CourseRegistrationSystem {
                 throw new IllegalArgumentException("Course code cannot be empty.");
             }
             Course selectedCourse = findCourseByCode(courseCode);
+            
             if (selectedCourse != null && student.getEnrolledCourses().contains(selectedCourse)) {
+                // Get enrollment date for this course
+                LocalDate enrollmentDate = student.getEnrollmentDate(selectedCourse);
+                if (enrollmentDate == null) {
+                    throw new IllegalStateException("Enrollment date not found for this course.");
+                }
+                
+                // Calculate time difference
+                LocalDate currentDate = LocalDate.now();
+                LocalDate dropEligibleDate = enrollmentDate.plusMonths(2);
+                
+                if (currentDate.isBefore(dropEligibleDate)) {
+                    // Calculate remaining days
+                    long daysRemaining = ChronoUnit.DAYS.between(currentDate, dropEligibleDate);
+                    throw new EarlyDropException(
+                        "ERROR: Course drop not allowed before completing 2 months of enrollment.",
+                        dropEligibleDate,
+                        daysRemaining
+                    );
+                }
+                
                 student.dropCourse(selectedCourse);
                 System.out.println("Successfully dropped " + selectedCourse.getName());
             } else {
                 throw new IllegalArgumentException("Course not found or not enrolled.");
             }
-        } catch (IllegalArgumentException e) {
+        } catch (EarlyDropException e) {
+            System.out.println(e.getMessage());
+            System.out.println("You will be eligible to drop this course after: " 
+                + e.getEligibleDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+            System.out.println("Days remaining until eligible for drop: " + e.getDaysRemaining());
+        } catch (IllegalArgumentException | IllegalStateException e) {
             System.out.println("Failed to drop course: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("An unexpected error occurred while dropping the course: " + e.getMessage());
@@ -768,4 +850,4 @@ public static void main(String[] args) {
     CourseRegistrationSystem system = new CourseRegistrationSystem();
     system.start();
     }
-}
+}	
